@@ -1,0 +1,252 @@
+from sqlalchemy import create_engine, Column, String, Integer, Float, Boolean, DateTime, Text, ForeignKey, Date, Enum as SQLEnum
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from datetime import datetime, timezone
+import enum
+
+Base = declarative_base()
+
+
+class Role(str, enum.Enum):
+    ADMIN = "admin"
+    SALESPERSON = "salesperson"
+    ACCOUNTANT = "accountant"
+
+
+class GlossaryStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class GlossaryCategory(str, enum.Enum):
+    PRODUCT_SPEC = "product_spec"
+    UNIT = "unit"
+    BUSINESS_TERM = "business_term"
+    CUSTOMER_SPECIFIC = "customer_specific"
+
+
+class OrderStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PENDING_ADMIN = "pending_admin"
+    APPROVED = "approved"
+    SENT = "sent"
+    CANCELLED = "cancelled"
+
+
+class PaymentStatus(str, enum.Enum):
+    DRAFTED = "drafted"
+    RECONCILED_CONFIRMED = "reconciled_confirmed"
+    REJECTED = "rejected"
+
+
+class ActorType(str, enum.Enum):
+    AGENT = "agent"
+    ADMIN = "admin"
+    SALESPERSON = "salesperson"
+    ACCOUNTANT = "accountant"
+
+
+class StaffAllowlistEntry(Base):
+    __tablename__ = "staff_allowlist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phone_number = Column(String(20), unique=True, nullable=True, index=True)
+    telegram_user_id = Column(String(20), unique=True, nullable=True, index=True)  # Telegram numeric user ID
+    name = Column(String(100), nullable=False)
+    role = Column(SQLEnum(Role), nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    added_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    added_by = Column(String(100), nullable=False)
+
+
+class GlossaryEntry(Base):
+    __tablename__ = "glossary"
+
+    id = Column(Integer, primary_key=True, index=True)
+    term = Column(String(200), nullable=False, index=True)
+    canonical_value = Column(String(200), nullable=False)
+    category = Column(SQLEnum(GlossaryCategory), nullable=False)
+    status = Column(SQLEnum(GlossaryStatus), default=GlossaryStatus.PENDING, nullable=False, index=True)
+    created_from_conversation = Column(String(100), nullable=True)
+    usage_count = Column(Integer, default=0, nullable=False)
+    last_used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    approved_by = Column(String(100), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+
+
+class SKUIndexEntry(Base):
+    __tablename__ = "sku_index"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sku = Column(String(50), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=False)
+    spec_attributes = Column(Text, nullable=True)  # JSON string
+    last_synced_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+
+
+class PriceReferenceEntry(Base):
+    __tablename__ = "price_reference"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sku = Column(String(50), nullable=False, index=True)
+    price = Column(Float, nullable=False)
+    updated_by = Column(String(100), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    effective_from = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    effective_to = Column(DateTime, nullable=True)
+
+
+class OrderRecord(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    reference = Column(String(50), unique=True, nullable=False, index=True)
+    version = Column(Integer, nullable=False, default=1)
+    customer_id = Column(String(50), nullable=False, index=True)
+    customer_name = Column(String(200), nullable=False)
+    items = Column(Text, nullable=False)  # JSON string
+    total_amount = Column(Float, nullable=False)
+    status = Column(SQLEnum(OrderStatus), default=OrderStatus.DRAFT, nullable=False, index=True)
+    salesperson_thread_id = Column(String(100), nullable=False, index=True)
+    salesperson_id = Column(String(100), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    approved_by = Column(String(100), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    sent_via_whatsapp_at = Column(DateTime, nullable=True)
+    sent_via_email_at = Column(DateTime, nullable=True)
+    parent_version = Column(Integer, nullable=True)
+    edit_reason = Column(Text, nullable=True)
+
+
+class UsageLogEntry(Base):
+    __tablename__ = "usage_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, nullable=False, index=True)
+    input_tokens = Column(Integer, nullable=False)
+    output_tokens = Column(Integer, nullable=False)
+    cost_usd = Column(Float, nullable=False)
+    agent_name = Column(String(50), nullable=False)
+    operation_type = Column(String(50), nullable=False)
+    model = Column(String(100), nullable=False, default="unknown")  # LLM model used
+
+
+class PaymentDraftEntry(Base):
+    __tablename__ = "payment_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    reference = Column(String(50), unique=True, nullable=False, index=True)
+    source_pdf_ref = Column(String(200), nullable=False)
+    extracted_amount = Column(Float, nullable=False)
+    extracted_date = Column(Date, nullable=False)
+    extracted_payer_ref = Column(String(100), nullable=False)
+    extracted_payer_name = Column(String(200), nullable=True)
+    status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.DRAFTED, nullable=False, index=True)
+    confirmed_by = Column(String(100), nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    notes = Column(Text, nullable=True)
+
+
+class ConversationState(Base):
+    __tablename__ = "conversation_states"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(String(100), unique=True, nullable=False, index=True)
+    participant_id = Column(String(20), nullable=False, index=True)  # Channel-specific: phone number or Telegram user ID
+    active_agent = Column(String(50), nullable=True)
+    last_agent_action_at = Column(DateTime, nullable=True)
+    admin_takeover_active = Column(Boolean, default=False, nullable=False)
+    admin_takeover_started_at = Column(DateTime, nullable=True)
+    admin_takeover_ends_at = Column(DateTime, nullable=True)
+    pending_confirmation = Column(Text, nullable=True)  # JSON string
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class AuditLogEntry(Base):
+    __tablename__ = "audit_log"
+
+    id = Column(String(50), primary_key=True)  # UUID
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    entity_type = Column(String(50), nullable=False, index=True)
+    entity_reference = Column(String(50), nullable=False, index=True)
+    action = Column(String(50), nullable=False)
+    actor = Column(String(100), nullable=False)
+    actor_type = Column(SQLEnum(ActorType), nullable=False)
+    details = Column(Text, nullable=True)  # JSON string
+    related_conversation_id = Column(String(100), nullable=True, index=True)
+
+
+class AddressValidationResult(Base):
+    __tablename__ = "address_validation_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_reference = Column(String(50), nullable=False, index=True)
+    customer_id = Column(String(50), nullable=False, index=True)
+    po_delivery_address = Column(Text, nullable=False)
+    registered_addresses = Column(Text, nullable=False)  # JSON string
+    is_trading_house = Column(Boolean, nullable=False)
+    match_found = Column(Boolean, nullable=False)
+    validation_level = Column(String(50), nullable=False)  # "match" | "trading_house_mismatch" | "high_risk_mismatch"
+    requires_admin_approval = Column(Boolean, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class EmailConfig(Base):
+    __tablename__ = "email_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    imap_server = Column(String(200), nullable=False)
+    imap_port = Column(Integer, nullable=False)
+    username = Column(String(200), nullable=False)
+    password = Column(String(500), nullable=False)  # Should be encrypted in production
+    folder = Column(String(100), default="INBOX", nullable=False)
+    po_sender_allowlist = Column(Text, nullable=False)  # JSON string of email addresses
+    po_keywords = Column(Text, nullable=False)  # JSON string of keywords
+    active = Column(Boolean, default=True, nullable=False)
+    last_polled_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+def get_engine(database_url: str):
+    """Create database engine."""
+    return create_engine(database_url, echo=False)
+
+
+def get_sessionmaker(engine):
+    """Create session factory."""
+    return sessionmaker(bind=engine)
+
+
+# Global engine and session factory (shared across all modules)
+_engine = None
+_SessionLocal = None
+
+
+def init_database(database_url: str):
+    """Initialize database with all tables."""
+    global _engine, _SessionLocal
+    _engine = get_engine(database_url)
+    _SessionLocal = get_sessionmaker(_engine)
+    Base.metadata.create_all(bind=_engine)
+    return _engine
+
+
+def get_db_engine():
+    """Get the global database engine."""
+    if _engine is None:
+        raise RuntimeError("Database not initialized. Call init_database() first.")
+    return _engine
+
+
+def get_db_session_factory():
+    """Get the global session factory."""
+    if _SessionLocal is None:
+        raise RuntimeError("Database not initialized. Call init_database() first.")
+    return _SessionLocal
