@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import SecretStr
-from typing import Literal
+from typing import Literal, Optional
 
 
 class Settings(BaseSettings):
@@ -18,10 +18,17 @@ class Settings(BaseSettings):
     ilmu_api_key: str = ""  # Optional for webhook-only dev runs
     ilmu_base_url: str = "https://api.ilmu.ai/v1"
     ilmu_model: str = "ilmu-mini-v3.3"
+    # Vision model used ONLY for OCR of scanned PDF attachments (no text layer).
+    # Text-layer PDFs still go through pypdf for free. Empty = scanned docs blocked.
+    ilmu_vision_model: str = ""
+    ilmu_vision_key: str = ""  # separate API key if the vision model uses one; falls back to ilmu_api_key
 
     # Telegram Configuration (alternative channel - lower messaging cost)
     telegram_bot_token: SecretStr = SecretStr("")
     telegram_webhook_secret_token: SecretStr = SecretStr("")
+
+    # Email Webhook Configuration
+    email_webhook_secret_token: SecretStr = SecretStr("")
 
     # LLM pricing (USD per million tokens), keyed by model name.
     # "default" is the fallback for models not listed here.
@@ -72,6 +79,40 @@ class Settings(BaseSettings):
     smtp_password: SecretStr = SecretStr("")
     smtp_from: str = ""
     smtp_use_tls: bool = True
+
+    # Email Order Processing Capability Flags
+    email_enabled: bool = True
+    email_can_draft: bool = True
+    email_can_reply: bool = False
+    email_outbound_allowlist: str = ""  # Comma-separated list of allowed recipient emails
+
+    # Email Agent Autonomy Mode
+    # shadow: Agent drafts but admin handles manually (measure accuracy)
+    # assisted: Admin approves with one click, agent executes
+    # selective_autonomy: Agent auto-submits safe orders
+    email_autonomy_mode: str = "shadow"
+
+    # Selective Autonomy Criteria
+    email_auto_submit_max_amount: float = 10000.0  # RM threshold for auto-submit
+    email_auto_submit_repeat_customer: bool = True  # Only repeat customers
+    email_auto_submit_trading_house_allowed: bool = False  # Exclude trading houses
+
+    # Microsoft Graph (Outlook) Configuration
+    ms_client_id: str = ""  # Azure AD app registration client ID
+    ms_tenant_id: str = "consumers"  # Azure AD tenant ID (or 'consumers' for personal accounts)
+    ms_client_secret: Optional[SecretStr] = SecretStr("")  # Azure AD app client secret (for service principal)
+    ms_poll_interval: int = 300  # Polling interval in seconds (default: 5 minutes)
+
+    # Gmail Configuration
+    # Gmail API (OAuth 2.0 - Recommended)
+    gmail_client_id: str = ""  # Google Cloud OAuth 2.0 client ID
+    gmail_client_secret: Optional[SecretStr] = SecretStr("")  # Google Cloud OAuth 2.0 client secret
+    gmail_refresh_token: str = ""  # OAuth 2.0 refresh token (long-lived)
+    # Gmail IMAP (Alternative - simpler setup)
+    gmail_imap_username: str = ""  # Gmail address
+    gmail_imap_password: Optional[SecretStr] = SecretStr("")  # App password (not regular password!)
+    gmail_imap_port: int = 993  # IMAP port (default: 993)
+    gmail_poll_interval: int = 300  # Polling interval in seconds (default: 5 minutes)
 
     # Usage / Cost Control
     token_budget_per_day: int = 100000

@@ -29,7 +29,7 @@ class CoreMessageHandler:
     def __init__(self, db: Session):
         self.db = db
         self.glossary_manager = GlossaryManager(db)
-        self.trigger_detector = TriggerDetector(self.glossary_manager)
+        self.trigger_detector = TriggerDetector(self.glossary_manager, db)
 
     def is_staff_member(self, sender_id: str, channel: str) -> bool:
         """

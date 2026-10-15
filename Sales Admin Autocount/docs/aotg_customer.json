@@ -1,0 +1,915 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "v1",
+    "title": "PSW.SOTC.WebApiService"
+  },
+  "host": "aotgapi.autocountcloud.com",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/api/public/v1/Debtor": {
+      "get": {
+        "tags": [
+          "Debtor"
+        ],
+        "summary": "Get List of Debtor",
+        "description": "Get list of debtors in this company.",
+        "operationId": "Debtor_GetList_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "ModifiedFromDate",
+            "in": "query",
+            "description": "Modified Date From in YYYYMMDD format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "ModifiedToDate",
+            "in": "query",
+            "description": "Modified Date To in YYYYMMDD format",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DebtorListResultEntity"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Debtor"
+        ],
+        "summary": "Update Debtor",
+        "description": "Update debtor",
+        "operationId": "Debtor_Update_V1",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml",
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "debtor",
+            "in": "body",
+            "description": "",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DebtorUpdateEntity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DebtorUpdateResultEntity"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Debtor"
+        ],
+        "summary": "Create Debtor",
+        "description": "Create debtor",
+        "operationId": "Debtor_Create_V1",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml",
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "debtor",
+            "in": "body",
+            "description": "",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DebtorCreateEntity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DebtorCreateResultEntity"
+            }
+          }
+        }
+      }
+    },
+    "/api/public/v1/Debtor/{debtorId}": {
+      "get": {
+        "tags": [
+          "Debtor"
+        ],
+        "summary": "Get Debtor",
+        "description": "Get debtor",
+        "operationId": "Debtor_Get_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "debtorId",
+            "in": "path",
+            "description": "Debtor Id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DebtorGetResultEntity"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Debtor"
+        ],
+        "summary": "Delete Debtor",
+        "description": "delete debtor",
+        "operationId": "Debtor_Delete_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "debtorId",
+            "in": "path",
+            "description": "Debtor Id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DebtorDeleteResultEntity"
+            }
+          }
+        }
+      }
+    },
+    "/api/public/v1/Lookup/DebtorLookup": {
+      "get": {
+        "tags": [
+          "Lookup"
+        ],
+        "summary": "Get list of debtor.",
+        "operationId": "Lookup_GetDebtorLookup_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/IDebtorLookupEntity"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "DebtorListResultEntity": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "AccNo": {
+          "type": "string"
+        },
+        "CompanyName": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "NatureOfBusiness": {
+          "type": "string"
+        },
+        "Outstanding": {
+          "format": "double",
+          "type": "number"
+        },
+        "CurrencySymbol": {
+          "type": "string"
+        },
+        "BlockExceedCreditLimit": {
+          "type": "boolean"
+        },
+        "TaxCode": {
+          "type": "string"
+        },
+        "TaxRegistrationNo": {
+          "type": "string"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        },
+        "Area": {
+          "type": "string"
+        },
+        "PriceCategory": {
+          "type": "string"
+        }
+      }
+    },
+    "DebtorCreateEntity": {
+      "required": [
+        "CompanyName"
+      ],
+      "type": "object",
+      "properties": {
+        "CompanyName": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AddressEntity": {
+      "type": "object",
+      "properties": {
+        "Contact": {
+          "type": "string"
+        },
+        "Fax": {
+          "type": "string"
+        },
+        "Phone": {
+          "type": "string"
+        },
+        "Address1": {
+          "type": "string"
+        },
+        "Address2": {
+          "type": "string"
+        },
+        "Address3": {
+          "type": "string"
+        },
+        "Address4": {
+          "type": "string"
+        }
+      }
+    },
+    "IDebtorLookupEntity": {
+      "type": "object",
+      "properties": {
+        "AccNo": {
+          "type": "string"
+        },
+        "CompanyName": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/IAddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/IAddressEntity"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "CurrencySymbol": {
+          "type": "string"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        },
+        "TaxCode": {
+          "type": "string"
+        },
+        "DetailDiscount": {
+          "type": "string"
+        },
+        "SalesExemptionNo": {
+          "type": "string"
+        },
+        "SalesExemptionExpiryDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "BranchList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IDebtorBranchEntity"
+          }
+        },
+        "TaxExemptionList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IDebtorTaxExemptionEntity"
+          }
+        }
+      }
+    },
+    "DebtorUpdateResultEntity": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "AccNo": {
+          "type": "string"
+        },
+        "CompanyName": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "NatureOfBusiness": {
+          "type": "string"
+        },
+        "Outstanding": {
+          "format": "double",
+          "type": "number"
+        },
+        "CurrencySymbol": {
+          "type": "string"
+        },
+        "BlockExceedCreditLimit": {
+          "type": "boolean"
+        },
+        "TaxCode": {
+          "type": "string"
+        },
+        "TaxRegistrationNo": {
+          "type": "string"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        },
+        "Area": {
+          "type": "string"
+        },
+        "PriceCategory": {
+          "type": "string"
+        }
+      }
+    },
+    "IAddressEntity": {
+      "type": "object",
+      "properties": {
+        "Contact": {
+          "type": "string"
+        },
+        "Fax": {
+          "type": "string"
+        },
+        "Phone": {
+          "type": "string"
+        },
+        "Address1": {
+          "type": "string"
+        },
+        "Address2": {
+          "type": "string"
+        },
+        "Address3": {
+          "type": "string"
+        },
+        "Address4": {
+          "type": "string"
+        }
+      }
+    },
+    "DebtorGetResultEntity": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "AccNo": {
+          "type": "string"
+        },
+        "CompanyName": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "NatureOfBusiness": {
+          "type": "string"
+        },
+        "Outstanding": {
+          "format": "double",
+          "type": "number"
+        },
+        "CurrencySymbol": {
+          "type": "string"
+        },
+        "BlockExceedCreditLimit": {
+          "type": "boolean"
+        },
+        "TaxCode": {
+          "type": "string"
+        },
+        "TaxRegistrationNo": {
+          "type": "string"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        },
+        "Area": {
+          "type": "string"
+        },
+        "PriceCategory": {
+          "type": "string"
+        }
+      }
+    },
+    "IDebtorBranchEntity": {
+      "type": "object",
+      "properties": {
+        "IsActive": {
+          "type": "boolean"
+        },
+        "Code": {
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Address1": {
+          "type": "string"
+        },
+        "Address2": {
+          "type": "string"
+        },
+        "Address3": {
+          "type": "string"
+        },
+        "Address4": {
+          "type": "string"
+        },
+        "PostCode": {
+          "type": "string"
+        },
+        "Contact": {
+          "type": "string"
+        },
+        "Phone": {
+          "type": "string"
+        },
+        "Phone2": {
+          "type": "string"
+        },
+        "Fax1": {
+          "type": "string"
+        },
+        "Fax2": {
+          "type": "string"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "Area": {
+          "type": "string"
+        },
+        "RowState": {
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "type": "integer"
+        }
+      }
+    },
+    "DebtorDeleteResultEntity": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "AccNo": {
+          "type": "string"
+        },
+        "CompanyName": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "NatureOfBusiness": {
+          "type": "string"
+        },
+        "Outstanding": {
+          "format": "double",
+          "type": "number"
+        },
+        "CurrencySymbol": {
+          "type": "string"
+        },
+        "BlockExceedCreditLimit": {
+          "type": "boolean"
+        },
+        "TaxCode": {
+          "type": "string"
+        },
+        "TaxRegistrationNo": {
+          "type": "string"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        },
+        "Area": {
+          "type": "string"
+        },
+        "PriceCategory": {
+          "type": "string"
+        }
+      }
+    },
+    "IDebtorTaxExemptionEntity": {
+      "type": "object",
+      "properties": {
+        "ItemCode": {
+          "type": "string"
+        },
+        "SalesExemptionNo": {
+          "type": "string"
+        },
+        "TaxType": {
+          "type": "string"
+        }
+      }
+    },
+    "DebtorCreateResultEntity": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "AccNo": {
+          "type": "string"
+        },
+        "CompanyName": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        },
+        "SalesAgent": {
+          "type": "string"
+        },
+        "NatureOfBusiness": {
+          "type": "string"
+        },
+        "Outstanding": {
+          "format": "double",
+          "type": "number"
+        },
+        "CurrencySymbol": {
+          "type": "string"
+        },
+        "BlockExceedCreditLimit": {
+          "type": "boolean"
+        },
+        "TaxCode": {
+          "type": "string"
+        },
+        "TaxRegistrationNo": {
+          "type": "string"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        },
+        "Area": {
+          "type": "string"
+        },
+        "PriceCategory": {
+          "type": "string"
+        }
+      }
+    },
+    "DebtorUpdateEntity": {
+      "required": [
+        "Id",
+        "CompanyName"
+      ],
+      "type": "object",
+      "properties": {
+        "Id": {
+          "description": "Debtor Company Name",
+          "type": "string"
+        },
+        "CompanyName": {
+          "type": "string"
+        },
+        "RegisterNo": {
+          "type": "string"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "InvoiceAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "DeliverAddress": {
+          "$ref": "#/definitions/AddressEntity"
+        },
+        "CreditTerm": {
+          "type": "string"
+        },
+        "CreditLimit": {
+          "format": "double",
+          "type": "number"
+        },
+        "WebURL": {
+          "type": "string"
+        },
+        "EmailAddress": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "CurrencyCode": {
+          "type": "string"
+        },
+        "IsTaxRegistered": {
+          "type": "boolean"
+        },
+        "IsInclusiveTax": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

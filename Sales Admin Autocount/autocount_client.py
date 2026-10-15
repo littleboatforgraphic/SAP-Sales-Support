@@ -20,6 +20,10 @@ import pyodbc
 import json
 
 from config import settings
+from aotg_sales_invoice_models import CreateSalesOrderParam, CreateARInvoiceParam
+from aotg_customer_models import DebtorGetResultEntity, DebtorListResultEntity
+from aotg_stock_models import StockItemResult
+from aotg_delivery_order_models import CreateDeliveryOrderParam
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +52,17 @@ class AutoCountClientInterface(ABC):
         pass
 
     @abstractmethod
-    def create_sales_order(self, order_data: Dict[str, Any]) -> Optional[str]:
+    def create_sales_order(self, order_data: CreateSalesOrderParam) -> Optional[str]:
         """Create a sales order in AutoCount and return the order number."""
         pass
 
     @abstractmethod
-    def create_invoice(self, order_data: Dict[str, Any]) -> Optional[str]:
+    def create_invoice(self, invoice_data: CreateARInvoiceParam) -> Optional[str]:
         """Create an invoice in AutoCount and return the invoice number."""
         pass
 
     @abstractmethod
-    def create_delivery_order(self, order_data: Dict[str, Any]) -> Optional[str]:
+    def create_delivery_order(self, do_data: CreateDeliveryOrderParam) -> Optional[str]:
         """Create a delivery order and return the DO number."""
         pass
 
@@ -259,6 +263,30 @@ class AOTGClient(AutoCountClientInterface):
         result = await self._get_result(request_id, request_name)
         return result
 
+    def list_debtors(self) -> List[Dict[str, Any]]:
+        """
+        List all debtors (customers) via GET /api/public/v1/Debtor.
+        Used for fuzzy customer matching on inbound email orders.
+        """
+        if self._mock_mode:
+            logger.warning("Using mock mode for list_debtors")
+            return []
+
+        try:
+            url = f"{self.base_url}/api/public/v1/Debtor"
+            response = httpx.get(url, headers=self._get_headers(), timeout=30.0)
+            response.raise_for_status()
+
+            debtors = []
+            for row in response.json():
+                debtor = DebtorListResultEntity(**row)
+                debtors.append(debtor.model_dump())
+            return debtors
+
+        except Exception as e:
+            logger.error(f"Failed to list debtors: {e}")
+            return []
+
     def get_customer_details(self, debtor_code: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve customer (Debtor) details from AutoCount via AOTG.
@@ -406,7 +434,7 @@ class AOTGClient(AutoCountClientInterface):
 
         return False
 
-    def create_sales_order(self, order_data: Dict[str, Any]) -> Optional[str]:
+    async def create_sales_order(self, order_data: CreateSalesOrderParam) -> Optional[str]:
         """
         Create a sales order in AutoCount via AOTG API.
         Returns the order number.
@@ -416,49 +444,11 @@ class AOTGClient(AutoCountClientInterface):
             return None
 
         try:
-            # Map order data to AOTG SalesOrder structure
-            so_data = {
-                "Debtor": order_data.get("customer_id"),
-                "DebtorName": order_data.get("customer_name", ""),
-                "DeliverAddress": order_data.get("delivery_address", {}),
-                "InvoiceAddress": order_data.get("invoice_address", {}),
-                "Agent": order_data.get("salesperson", ""),
-                "SalesLocation": order_data.get("sales_location", "HQ"),
-                "DocumentDate": order_data.get("date", datetime.now(timezone.utc).isoformat()),
-                "CreditTerm": order_data.get("credit_term", ""),
-                "ShipVia": order_data.get("ship_via", ""),
-                "ShipInfo": order_data.get("ship_info", ""),
-                "InclusiveTax": order_data.get("inclusive_tax", False),
-                "Description": order_data.get("description", ""),
-                "Ref": order_data.get("ref", ""),
-                "RefDocNo": order_data.get("ref_doc_no", ""),
-                "Note": order_data.get("note", ""),
-                "CurrencyCode": order_data.get("currency_code", "MYR"),
-                "CurrencyRate": order_data.get("currency_rate", 1),
-                "DetailsLine": []
-            }
-
-            # Map items to DetailsLine
-            for item in order_data.get("items", []):
-                detail_line = {
-                    "Item": item.get("item_code"),
-                    "UOM": item.get("uom", "UNIT"),
-                    "Qty": item.get("quantity", 0),
-                    "UnitPrice": item.get("unit_price", 0),
-                    "Description": item.get("description", ""),
-                    "Location": item.get("location", "HQ"),
-                    "AccNo": item.get("acc_no", ""),
-                    "DeliveryDate": item.get("delivery_date", datetime.now(timezone.utc).isoformat()),
-                    "RowState": 0,
-                    "Tax": item.get("tax", ""),
-                    "Discount": item.get("discount", ""),
-                    "Project": item.get("project", ""),
-                    "Dept": item.get("department", "")
-                }
-                so_data["DetailsLine"].append(detail_line)
+            # Convert Pydantic model to dict for API call
+            so_data = order_data.model_dump(exclude_none=True)
 
             # Execute async request
-            result = asyncio.run(self._execute_async_request("/api/public/v1/SalesOrder", so_data))
+            result = await self._execute_async_request("/api/public/v1/SalesOrder", so_data)
 
             # Extract document number from result
             doc_no = result.get("Number")
@@ -469,7 +459,7 @@ class AOTGClient(AutoCountClientInterface):
             logger.error(f"Failed to create sales order: {e}")
             return None
 
-    def create_invoice(self, order_data: Dict[str, Any]) -> Optional[str]:
+    async def create_invoice(self, invoice_data: CreateARInvoiceParam) -> Optional[str]:
         """
         Create an AR Invoice in AutoCount via AOTG API.
         Returns the invoice number.
@@ -479,37 +469,14 @@ class AOTGClient(AutoCountClientInterface):
             return None
 
         try:
-            # Map order data to AOTG AR Invoice structure
-            invoice_data = {
-                "DebtorCode": order_data.get("customer_id"),
-                "Description": order_data.get("description", ""),
-                "DocDate": order_data.get("date", datetime.now().strftime("%Y-%m-%d")),
-                "DocNo": order_data.get("doc_no", ""),  # Optional: let AutoCount auto-generate
-                "JournalType": "SALES",
-                "RefNo2": order_data.get("ref_no2", ""),
-                "InclusiveTax": order_data.get("inclusive_tax", False),
-                "Agent": order_data.get("salesperson", ""),
-                "CreditTerm": order_data.get("credit_term", ""),
-                "CurrencyCode": order_data.get("currency_code", "MYR"),
-                "DetailsLine": []
-            }
-
-            # Map items to DetailsLine (AR Invoice uses AccNo, Description, Tax, Amount)
-            for item in order_data.get("items", []):
-                detail_line = {
-                    "LineState": 1,  # Indicates new line
-                    "AccNo": item.get("acc_no", ""),
-                    "Description": item.get("description", ""),
-                    "Tax": item.get("tax", ""),
-                    "Amount": item.get("amount", 0)
-                }
-                invoice_data["DetailsLine"].append(detail_line)
+            # Convert Pydantic model to dict for API call
+            invoice_dict = invoice_data.model_dump(exclude_none=True)
 
             # Execute async request
-            result = asyncio.run(self._execute_async_request("/api/public/v1/ARInvoice/CreateARInvoice", invoice_data))
+            result = await self._execute_async_request("/api/public/v1/ARInvoice/CreateARInvoice", invoice_dict)
 
             # Extract document number from result
-            doc_no = result.get("DocNo")
+            doc_no = result.get("Number")
             logger.info(f"Created AR Invoice: {doc_no}")
             return doc_no
 
@@ -517,7 +484,7 @@ class AOTGClient(AutoCountClientInterface):
             logger.error(f"Failed to create invoice: {e}")
             return None
 
-    def create_delivery_order(self, order_data: Dict[str, Any]) -> Optional[str]:
+    async def create_delivery_order(self, do_data: CreateDeliveryOrderParam) -> Optional[str]:
         """
         Create a delivery order in AutoCount via AOTG API.
         Returns the DO number.
@@ -527,51 +494,11 @@ class AOTGClient(AutoCountClientInterface):
             return None
 
         try:
-            # Map order data to AOTG DeliveryOrder structure
-            do_data = {
-                "Debtor": order_data.get("customer_id"),
-                "DebtorName": order_data.get("customer_name", ""),
-                "DeliverAddress": order_data.get("delivery_address", {}),
-                "InvoiceAddress": order_data.get("invoice_address", {}),
-                "Agent": order_data.get("salesperson", ""),
-                "SalesLocation": order_data.get("sales_location", "HQ"),
-                "DocumentDate": order_data.get("date", datetime.now(timezone.utc).isoformat()),
-                "CreditTerm": order_data.get("credit_term", ""),
-                "ShipVia": order_data.get("ship_via", ""),
-                "ShipInfo": order_data.get("ship_info", ""),
-                "InclusiveTax": order_data.get("inclusive_tax", False),
-                "Description": order_data.get("description", ""),
-                "Ref": order_data.get("ref", ""),
-                "RefDocNo": order_data.get("ref_doc_no", ""),
-                "Note": order_data.get("note", ""),
-                "CurrencyCode": order_data.get("currency_code", "MYR"),
-                "CurrencyRate": order_data.get("currency_rate", 1),
-                "UnPostToGL": order_data.get("un_post_to_gl", False),
-                "UnPostToStock": order_data.get("un_post_to_stock", False),
-                "DetailsLine": []
-            }
-
-            # Map items to DetailsLine
-            for item in order_data.get("items", []):
-                detail_line = {
-                    "Item": item.get("item_code"),
-                    "UOM": item.get("uom", "UNIT"),
-                    "Qty": item.get("quantity", 0),
-                    "UnitPrice": item.get("unit_price", 0),
-                    "Description": item.get("description", ""),
-                    "Location": item.get("location", "HQ"),
-                    "AccNo": item.get("acc_no", ""),
-                    "DeliveryDate": item.get("delivery_date", datetime.now(timezone.utc).isoformat()),
-                    "RowState": 0,
-                    "Tax": item.get("tax", ""),
-                    "Discount": item.get("discount", ""),
-                    "Project": item.get("project", ""),
-                    "Dept": item.get("department", "")
-                }
-                do_data["DetailsLine"].append(detail_line)
+            # Convert Pydantic model to dict for API call
+            do_dict = do_data.model_dump(exclude_none=True)
 
             # Execute async request
-            result = asyncio.run(self._execute_async_request("/api/public/v1/DeliveryOrder", do_data))
+            result = await self._execute_async_request("/api/public/v1/DeliveryOrder", do_dict)
 
             # Extract document number from result
             doc_no = result.get("Number")

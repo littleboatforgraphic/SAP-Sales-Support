@@ -1,7 +1,10 @@
+import logging
+logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
 from fastapi import FastAPI, HTTPException, status
 from contextlib import asynccontextmanager
 from database import init_database, get_db_session_factory, get_db_engine
 from config import settings
+init_database(settings.database_url)   # pass whatever arguments your function needs
 import logging
 
 # Configure logging with validation
@@ -17,11 +20,16 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpx2").setLevel(logging.WARNING)
 
 # Import routers
 from routers.whatsapp_webhook import router as whatsapp_router
 from routers.telegram_webhook import router as telegram_router
 from routers.aotg_telegram_webhook import router as aotg_telegram_router
+from routers.agents_webhook import router as agents_webhook
+from routers.email_webhook import router as email_webhook
+from routers.admin_approval import router as admin_approval_router
 
 # Global session factory (initialized in lifespan)
 SessionLocal = None
@@ -122,6 +130,9 @@ async def readiness_check():
 app.include_router(whatsapp_router, prefix="/api/v1", tags=["webhook-whatsapp"])
 app.include_router(telegram_router, prefix="/api/v1", tags=["webhook-telegram"])
 app.include_router(aotg_telegram_router, prefix="/api/v1", tags=["webhook-aotg-telegram"])
+app.include_router(agents_webhook, prefix="/api/v1", tags=["webhook-agents"])
+app.include_router(email_webhook, prefix="/api/v1", tags=["webhook-email"])
+app.include_router(admin_approval_router, prefix="/api/v1/admin", tags=["admin-approval"])
 
 
 if __name__ == "__main__":

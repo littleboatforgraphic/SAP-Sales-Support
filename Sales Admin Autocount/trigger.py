@@ -1,5 +1,6 @@
 from typing import Optional, List
 from glossary import GlossaryManager
+from sqlalchemy.orm import Session
 import re
 
 
@@ -8,6 +9,7 @@ class TriggerDetector:
     Detects when a message should trigger agent processing.
     Supports explicit prefix triggers and keyword fallback triggers.
     Uses word-boundary matching to prevent false positives.
+    Learns new trigger keywords dynamically from user interactions.
     """
 
     EXPLICIT_PREFIXES = ["ai", "agent", "ai agent"]
@@ -16,12 +18,15 @@ class TriggerDetector:
     DEFAULT_KEYWORDS = [
         "quotation", "quote", "invoice", "sales order", "so", "purchase order", "po",
         "delivery order", "do", "new acc", "new account", "payment", "stock", "order",
-        "sebut harga", "invois", "pesanan", "stok", "bayaran"
+        "sebut harga", "invois", "pesanan", "stok", "bayaran", "AI", "ai agent", "agent"
     ]
 
-    def __init__(self, glossary_manager: GlossaryManager):
+    def __init__(self, glossary_manager: GlossaryManager, db: Session = None):
         self.glossary_manager = glossary_manager
+        self.db = db
         self.keyword_list = self._build_keyword_list()
+        self._learned_keywords_cache = None
+        self._cache_expiry = None
 
     def _build_keyword_list(self) -> List[str]:
         """
@@ -37,6 +42,34 @@ class TriggerDetector:
         if business_terms:
             return business_terms
         return self.DEFAULT_KEYWORDS
+
+    def _get_learned_trigger_keywords(self) -> List[str]:
+        """Get dynamically learned trigger keywords from database."""
+        if not self.db:
+            return []
+        
+        # Simple cache
+        if self._learned_keywords_cache and self._cache_expiry:
+            from datetime import datetime, timezone, timedelta
+            if datetime.now(timezone.utc) < self._cache_expiry:
+                return self._learned_keywords_cache
+
+        try:
+            from database import LearnedTriggerKeyword
+            learned = self.db.query(LearnedTriggerKeyword).filter(
+                LearnedTriggerKeyword.agent_type == "trigger",  # Special agent type for general triggers
+                LearnedTriggerKeyword.active == True,
+                LearnedTriggerKeyword.confidence >= 0.7
+            ).all()
+
+            keywords = [entry.keyword for entry in learned]
+            self._learned_keywords_cache = keywords
+            from datetime import datetime, timezone, timedelta
+            self._cache_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+            return keywords
+        except Exception as e:
+            # If table doesn't exist yet, return empty
+            return []
 
     def detect(self, message: str) -> Optional[str]:
         """
@@ -54,8 +87,13 @@ class TriggerDetector:
             if re.search(pattern, normalized):
                 return "explicit"
 
+        # Build full keyword list (default + learned)
+        all_keywords = self.keyword_list.copy()
+        learned_keywords = self._get_learned_trigger_keywords()
+        all_keywords.extend(learned_keywords)
+
         # Check keyword fallback with word boundaries
-        for keyword in self.keyword_list:
+        for keyword in all_keywords:
             # Use word boundaries to prevent partial matches
             pattern = rf"\b{re.escape(keyword)}\b"
             if re.search(pattern, normalized):
@@ -92,6 +130,55 @@ class TriggerDetector:
                 return True
 
         return False
+
+    def learn_new_trigger_keyword(self, message: str, confidence: float = 0.8):
+        """
+        Learn a new trigger keyword from a successfully triggered message.
+        """
+        if not self.db:
+            return
+
+        from database import LearnedTriggerKeyword
+        from dynamic_router import DynamicRouter
+
+        # Extract potential keywords
+        words = re.findall(r'\b\w+\b', message.lower())
+        
+        # Filter out common words
+        filtered_words = [
+            word for word in words
+            if word not in DynamicRouter.COMMON_WORDS and len(word) >= 3
+        ]
+        
+        # Add words as potential trigger keywords
+        for word in filtered_words:
+            # Check if already exists
+            existing = self.db.query(LearnedTriggerKeyword).filter(
+                LearnedTriggerKeyword.keyword == word,
+                LearnedTriggerKeyword.agent_type == "trigger"
+            ).first()
+            
+            if existing:
+                existing.usage_count += 1
+                existing.success_count += 1
+                existing.confidence = min(existing.confidence + 0.05, 1.0)
+                from datetime import datetime, timezone
+                existing.last_used_at = datetime.now(timezone.utc)
+            else:
+                new_keyword = LearnedTriggerKeyword(
+                    keyword=word,
+                    agent_type="trigger",  # Special type for general triggers
+                    confidence=confidence,
+                    usage_count=1,
+                    success_count=1
+                )
+                self.db.add(new_keyword)
+        
+        self.db.commit()
+        
+        # Clear cache
+        self._learned_keywords_cache = None
+        self._cache_expiry = None
 
     def get_acknowledgement_message(self, trigger_type: str, understood_context: str) -> str:
         """

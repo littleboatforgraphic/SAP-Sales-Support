@@ -13,7 +13,7 @@ class MockEmailMonitor:
         self.sample_pos = [
             {
                 "email_id": "001",
-                "sender": "customer1@example.com",
+                "sender": "customer@realcompany.com",
                 "subject": "PO-2026-001 - Wire Mesh Order",
                 "attachment": {
                     "filename": "PO-2026-001.pdf",
@@ -23,7 +23,7 @@ class MockEmailMonitor:
             },
             {
                 "email_id": "002",
-                "sender": "customer2@example.com",
+                "sender": "procurement@constructioncorp.my",
                 "subject": "Purchase Order #12345",
                 "attachment": {
                     "filename": "PO-12345.pdf",
@@ -41,11 +41,6 @@ class MockEmailMonitor:
         """Poll for new emails (returns sample data)."""
         print(f"[MOCK EMAIL] Polled {len(self.sample_pos)} PO emails")
         return self.sample_pos
-
-    def is_allowed_sender(self, sender: str) -> bool:
-        """Check if sender is on allowlist (mock)."""
-        allowed_senders = ["customer1@example.com", "customer2@example.com"]
-        return any(allowed in sender for allowed in allowed_senders)
 
     def contains_po_keywords(self, subject: str) -> bool:
         """Check if subject contains PO keywords (mock)."""

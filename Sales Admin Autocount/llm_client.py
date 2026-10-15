@@ -16,28 +16,38 @@ class LLMClient:
             api_key=settings.ilmu_api_key,
         )
         self.model = settings.ilmu_model
+        # Vision calls may use a different API key
+        vision_key = getattr(settings, "ilmu_vision_key", "") or settings.ilmu_api_key
+        self.vision_client = OpenAI(base_url=settings.ilmu_base_url, api_key=vision_key)
+        self.vision_model = getattr(settings, "ilmu_vision_model", "")
 
     def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Any]],
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Make a chat completion request to Ilmu Claw.
 
         Args:
-            messages: List of message dicts with 'role' and 'content'
+            messages: List of message dicts with 'role' and 'content'. For
+                vision calls, 'content' may be a list of text/image_url parts.
             temperature: Sampling temperature (0-2)
             max_tokens: Maximum tokens to generate
+            model: Override the configured model (e.g. the vision model for OCR)
             **kwargs: Additional parameters for the API call
 
         Returns:
             Dict containing response, input_tokens, output_tokens, cost
         """
-        response = self.client.chat.completions.create(
-            model=self.model,
+        used_model = model or self.model
+        # Vision model may need its own credentials
+        client = self.vision_client if (used_model == self.vision_model and self.vision_model) else self.client
+        response = client.chat.completions.create(
+            model=used_model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -50,7 +60,7 @@ class LLMClient:
         output_tokens = usage.completion_tokens if usage else 0
 
         # Cost calculated from the pricing table in config (settings.calculate_llm_cost)
-        cost = settings.calculate_llm_cost(input_tokens, output_tokens, self.model)
+        cost = settings.calculate_llm_cost(input_tokens, output_tokens, used_model)
 
         return {
             "content": response.choices[0].message.content,
@@ -58,7 +68,7 @@ class LLMClient:
             "output_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens,
             "cost_usd": cost,
-            "model": self.model
+            "model": used_model
         }
 
     def extract_text_from_pdf(

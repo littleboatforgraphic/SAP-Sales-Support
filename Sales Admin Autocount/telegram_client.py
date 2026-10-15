@@ -56,6 +56,12 @@ class TelegramClient:
             if e.response.status_code >= 500:
                 logger.error(f"Telegram server error: {e.response.status_code}")
                 raise RuntimeError(f"Telegram server error: {e.response.status_code}") from e
+            # Log actual error response for debugging (response body doesn't contain token)
+            try:
+                error_body = e.response.text
+                logger.error(f"Telegram API error {e.response.status_code}: {error_body}")
+            except Exception:
+                logger.error(f"Telegram API error {e.response.status_code}")
             # Re-raise other HTTP errors without exposing token in URL
             raise RuntimeError(f"Telegram API request failed with status {e.response.status_code}") from e
         except httpx.TimeoutException:
@@ -68,27 +74,26 @@ class TelegramClient:
             if not self._http_client:
                 await client.aclose()
 
-    async def send_message(self, chat_id: str, text: str) -> dict:
+    async def send_message(self, chat_id: str, text: str, parse_mode: Optional[str] = None) -> dict:
         """Send a text message to a chat. Automatically chunks messages > 4096 chars."""
+        payload = {"chat_id": chat_id, "text": text}
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
+
         if len(text) > TELEGRAM_MAX_MESSAGE_LENGTH:
             logger.warning(f"Message exceeds {TELEGRAM_MAX_MESSAGE_LENGTH} chars, chunking")
-            # Split into chunks
-            chunks = [text[i:i+TELEGRAM_MAX_MESSAGE_LENGTH] for i in range(0, len(text), TELEGRAM_MAX_MESSAGE_LENGTH)]
+            # Split into chunks, accounting for "...[continued]\n" prefix (14 chars)
+            chunk_size = TELEGRAM_MAX_MESSAGE_LENGTH - 20  # Extra buffer for safety
+            chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
             results = []
             for i, chunk in enumerate(chunks):
                 if i > 0:
                     chunk = f"...[continued]\n{chunk}"
-                result = await self._post("sendMessage", {
-                    "chat_id": chat_id,
-                    "text": chunk,
-                })
-                results.append(result)
+                payload["text"] = chunk
+                results.append(await self._post("sendMessage", dict(payload)))
             return {"sent": len(results), "chunks": results}
-        else:
-            return await self._post("sendMessage", {
-                "chat_id": chat_id,
-                "text": text,
-            })
+
+        return await self._post("sendMessage", payload)
 
     async def set_webhook(self, webhook_url: str, secret_token: Optional[str] = None) -> dict:
         """

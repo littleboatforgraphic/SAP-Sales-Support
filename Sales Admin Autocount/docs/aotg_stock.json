@@ -1,0 +1,914 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "v1",
+    "title": "PSW.SOTC.WebApiService"
+  },
+  "host": "aotgapi.autocountcloud.com",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/api/public/v1/StockItem/GetList": {
+      "post": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Get List of Stock Item",
+        "description": "Get list of Stock Item.",
+        "operationId": "Stock_GetStockItemList_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "ModifiedFromDate",
+            "in": "query",
+            "description": "Modified Date From in YYYYMMDD format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "ModifiedToDate",
+            "in": "query",
+            "description": "Modified Date To in YYYYMMDD format",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/StockItemListResult"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/v1/StockItem/{stockItemId}": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Get Stock Item",
+        "description": "GetStock Item.",
+        "operationId": "Stock_GetStockItem_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "stockItemId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/StockItemResult"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Delete StockItem",
+        "operationId": "Stock_DeleteMember_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "stockItemId",
+            "in": "path",
+            "description": "StockItemId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/StockItemResult"
+            }
+          }
+        }
+      }
+    },
+    "/api/public/v1/StockItem": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Get Stock Item",
+        "description": "GetStock Item.",
+        "operationId": "Stock_GetStockItemByCode_V1",
+        "consumes": [],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "itemCode",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/StockItemResult"
+            }
+          }
+        }
+      }
+    },
+    "/api/public/v1/StockItem/CreateStockItem": {
+      "post": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Create StockItem",
+        "operationId": "Stock_CreateStockItem_V1",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml",
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "param",
+            "in": "body",
+            "description": "StockItem",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateStockItemParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/StockItemResult"
+            }
+          }
+        }
+      }
+    },
+    "/api/public/v1/StockItem/UpdateStockItem": {
+      "put": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Update StockItem",
+        "operationId": "Stock_UpdateStockItem_V1",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml",
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json",
+          "text/json",
+          "application/xml",
+          "text/xml"
+        ],
+        "parameters": [
+          {
+            "name": "param",
+            "in": "body",
+            "description": "StockItem",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateStockItemParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/StockItemResult"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "UpdateStockItemUOMListResult": {
+      "required": [
+        "UOM",
+        "RowState"
+      ],
+      "type": "object",
+      "properties": {
+        "UOM": {
+          "type": "string"
+        },
+        "RowState": {
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "type": "integer"
+        },
+        "Rate": {
+          "format": "double",
+          "type": "number"
+        },
+        "Price": {
+          "format": "double",
+          "type": "number"
+        },
+        "StdCost": {
+          "format": "double",
+          "type": "number"
+        },
+        "BarCode": {
+          "type": "string"
+        },
+        "Measurement": {
+          "type": "string"
+        },
+        "Shelf": {
+          "type": "string"
+        },
+        "Weight": {
+          "format": "double",
+          "type": "number"
+        },
+        "WeightUOM": {
+          "type": "string"
+        },
+        "Volume": {
+          "format": "double",
+          "type": "number"
+        },
+        "VolumeUOM": {
+          "type": "string"
+        },
+        "MinSellingPrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxSellingPrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MinPurchasePrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxPurchasePrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MinQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "ReOrderQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "BalQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "ReOrderLevel": {
+          "format": "double",
+          "type": "number"
+        },
+        "NormalLevel": {
+          "format": "double",
+          "type": "number"
+        }
+      }
+    },
+    "CreateStockItemUOMListResult": {
+      "required": [
+        "UOM",
+        "RowState"
+      ],
+      "type": "object",
+      "properties": {
+        "UOM": {
+          "type": "string"
+        },
+        "RowState": {
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "type": "integer"
+        },
+        "Rate": {
+          "format": "double",
+          "type": "number"
+        },
+        "Price": {
+          "format": "double",
+          "type": "number"
+        },
+        "StdCost": {
+          "format": "double",
+          "type": "number"
+        },
+        "BarCode": {
+          "type": "string"
+        },
+        "Measurement": {
+          "type": "string"
+        },
+        "Shelf": {
+          "type": "string"
+        },
+        "Weight": {
+          "format": "double",
+          "type": "number"
+        },
+        "WeightUOM": {
+          "type": "string"
+        },
+        "Volume": {
+          "format": "double",
+          "type": "number"
+        },
+        "VolumeUOM": {
+          "type": "string"
+        },
+        "MinSellingPrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxSellingPrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MinPurchasePrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxPurchasePrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MinQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "ReOrderQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "BalQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "ReOrderLevel": {
+          "format": "double",
+          "type": "number"
+        },
+        "NormalLevel": {
+          "format": "double",
+          "type": "number"
+        }
+      }
+    },
+    "CreateStockItemParam": {
+      "type": "object",
+      "properties": {
+        "ItemCode": {
+          "type": "string"
+        },
+        "ItemDescription": {
+          "type": "string"
+        },
+        "ItemDescription2": {
+          "type": "string"
+        },
+        "ItemGroup": {
+          "type": "string"
+        },
+        "ItemType": {
+          "type": "string"
+        },
+        "BaseUOM": {
+          "type": "string"
+        },
+        "SalesUOM": {
+          "type": "string"
+        },
+        "PurchaseUOM": {
+          "type": "string"
+        },
+        "ReportUOM": {
+          "type": "string"
+        },
+        "UOM": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CreateStockItemUOMListResult"
+          }
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "Discontinued": {
+          "type": "boolean"
+        },
+        "DutyRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxCode": {
+          "type": "string"
+        },
+        "PurchaseTaxCode": {
+          "type": "string"
+        },
+        "LeadTime": {
+          "type": "string"
+        },
+        "ImageFileName": {
+          "type": "string"
+        },
+        "FurtherDescription": {
+          "type": "string"
+        },
+        "IsStockControl": {
+          "type": "boolean"
+        },
+        "IsBackOrderControl": {
+          "type": "boolean"
+        },
+        "IsAutoUOMConversion": {
+          "type": "boolean"
+        },
+        "CostingMethod": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "PurchaseTaxRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "TariffCode": {
+          "type": "string"
+        },
+        "MustGenerateEInvoice": {
+          "type": "boolean"
+        },
+        "Classification": {
+          "type": "string"
+        }
+      }
+    },
+    "StockItemUOMListResult": {
+      "type": "object",
+      "properties": {
+        "UOM": {
+          "type": "string"
+        },
+        "Rate": {
+          "format": "double",
+          "type": "number"
+        },
+        "Price": {
+          "format": "double",
+          "type": "number"
+        },
+        "StdCost": {
+          "format": "double",
+          "type": "number"
+        },
+        "BarCode": {
+          "type": "string"
+        },
+        "Measurement": {
+          "type": "string"
+        }
+      }
+    },
+    "StockItemResult": {
+      "type": "object",
+      "properties": {
+        "ItemCode": {
+          "type": "string"
+        },
+        "ItemDescription": {
+          "type": "string"
+        },
+        "ItemDescription2": {
+          "type": "string"
+        },
+        "ItemGroup": {
+          "type": "string"
+        },
+        "ItemType": {
+          "type": "string"
+        },
+        "BaseUOM": {
+          "type": "string"
+        },
+        "SalesUOM": {
+          "type": "string"
+        },
+        "PurchaseUOM": {
+          "type": "string"
+        },
+        "ReportUOM": {
+          "type": "string"
+        },
+        "UOM": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IStockItemUOMEntity"
+          }
+        },
+        "Id": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "Discontinued": {
+          "type": "boolean"
+        },
+        "DutyRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxCode": {
+          "type": "string"
+        },
+        "PurchaseTaxCode": {
+          "type": "string"
+        },
+        "LeadTime": {
+          "type": "string"
+        },
+        "ImageFileName": {
+          "type": "string"
+        },
+        "FurtherDescription": {
+          "type": "string"
+        },
+        "IsStockControl": {
+          "type": "boolean"
+        },
+        "IsBackOrderControl": {
+          "type": "boolean"
+        },
+        "IsAutoUOMConversion": {
+          "type": "boolean"
+        },
+        "CostingMethod": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "PurchaseTaxRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "TariffCode": {
+          "type": "string"
+        },
+        "MustGenerateEInvoice": {
+          "type": "boolean"
+        },
+        "Classification": {
+          "type": "string"
+        }
+      }
+    },
+    "StockItemListResult": {
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "ItemCode": {
+          "type": "string"
+        },
+        "ItemDescription": {
+          "type": "string"
+        },
+        "ItemDescription2": {
+          "type": "string"
+        },
+        "UOM": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StockItemUOMListResult"
+          }
+        },
+        "ItemGroup": {
+          "type": "string"
+        },
+        "ItemType": {
+          "type": "string"
+        },
+        "BaseUOM": {
+          "type": "string"
+        },
+        "SalesUOM": {
+          "type": "string"
+        },
+        "PurchaseUOM": {
+          "type": "string"
+        },
+        "ReportUOM": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "Discontinued": {
+          "type": "boolean"
+        },
+        "DutyRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxCode": {
+          "type": "string"
+        },
+        "PurchaseTaxCode": {
+          "type": "string"
+        },
+        "FurtherDescription": {
+          "type": "string"
+        },
+        "TariffCode": {
+          "type": "string"
+        },
+        "MustGenerateEInvoice": {
+          "type": "boolean"
+        },
+        "Classification": {
+          "type": "string"
+        }
+      }
+    },
+    "UpdateStockItemParam": {
+      "required": [
+        "Id"
+      ],
+      "type": "object",
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "ItemCode": {
+          "type": "string"
+        },
+        "ItemDescription": {
+          "type": "string"
+        },
+        "ItemDescription2": {
+          "type": "string"
+        },
+        "ItemGroup": {
+          "type": "string"
+        },
+        "ItemType": {
+          "type": "string"
+        },
+        "BaseUOM": {
+          "type": "string"
+        },
+        "SalesUOM": {
+          "type": "string"
+        },
+        "PurchaseUOM": {
+          "type": "string"
+        },
+        "ReportUOM": {
+          "type": "string"
+        },
+        "UOM": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/UpdateStockItemUOMListResult"
+          }
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "Discontinued": {
+          "type": "boolean"
+        },
+        "DutyRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxCode": {
+          "type": "string"
+        },
+        "PurchaseTaxCode": {
+          "type": "string"
+        },
+        "LeadTime": {
+          "type": "string"
+        },
+        "ImageFileName": {
+          "type": "string"
+        },
+        "FurtherDescription": {
+          "type": "string"
+        },
+        "IsStockControl": {
+          "type": "boolean"
+        },
+        "IsBackOrderControl": {
+          "type": "boolean"
+        },
+        "IsAutoUOMConversion": {
+          "type": "boolean"
+        },
+        "CostingMethod": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "PurchaseTaxRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "SupplyTaxRate": {
+          "format": "double",
+          "type": "number"
+        },
+        "TariffCode": {
+          "type": "string"
+        },
+        "MustGenerateEInvoice": {
+          "type": "boolean"
+        },
+        "Classification": {
+          "type": "string"
+        }
+      }
+    },
+    "IStockItemUOMEntity": {
+      "type": "object",
+      "properties": {
+        "UOM": {
+          "type": "string"
+        },
+        "Rate": {
+          "format": "double",
+          "type": "number"
+        },
+        "Price": {
+          "format": "double",
+          "type": "number"
+        },
+        "Shelf": {
+          "type": "string"
+        },
+        "BarCode": {
+          "type": "string"
+        },
+        "Measurement": {
+          "type": "string"
+        },
+        "Weight": {
+          "format": "double",
+          "type": "number"
+        },
+        "WeightUOM": {
+          "type": "string"
+        },
+        "Volume": {
+          "format": "double",
+          "type": "number"
+        },
+        "VolumeUOM": {
+          "type": "string"
+        },
+        "MinSellingPrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxSellingPrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MinPurchasePrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxPurchasePrice": {
+          "format": "double",
+          "type": "number"
+        },
+        "StdCost": {
+          "format": "double",
+          "type": "number"
+        },
+        "MinQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "MaxQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "ReOrderQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "BalQty": {
+          "format": "double",
+          "type": "number"
+        },
+        "ReOrderLevel": {
+          "format": "double",
+          "type": "number"
+        },
+        "NormalLevel": {
+          "format": "double",
+          "type": "number"
+        },
+        "RowState": {
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

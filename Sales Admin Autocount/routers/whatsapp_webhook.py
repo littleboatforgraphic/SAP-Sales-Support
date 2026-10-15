@@ -15,12 +15,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Use shared database session factory from database.py
-SessionLocal = get_db_session_factory()
+def get_session():
+    SessionLocal = get_db_session_factory()
+    return SessionLocal()
 
 
 def get_db():
     """Dependency to get database session."""
-    db = SessionLocal()
+    db = get_session()
     try:
         yield db
     finally:

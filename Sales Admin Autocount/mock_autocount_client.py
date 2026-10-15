@@ -7,6 +7,9 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import json
 
+from aotg_sales_invoice_models import CreateSalesOrderParam, CreateARInvoiceParam
+from aotg_delivery_order_models import CreateDeliveryOrderParam
+
 
 class MockAutoCountClient:
     """Mock AutoCount client that returns sample data for testing."""
@@ -117,6 +120,14 @@ class MockAutoCountClient:
         """Get stock quantity for an item code (for backward compatibility)."""
         return self.stock.get(item_code)
 
+    def list_debtors(self) -> List[Dict[str, Any]]:
+        """List all debtors, shaped like AOTG's DebtorListResultEntity."""
+        return [
+            {"AccNo": code, "CompanyName": c["CompanyName"],
+             "Area": c.get("Area", ""), "DeliverAddress": c.get("DeliverAddress")}
+            for code, c in self.customers.items()
+        ]
+
     def get_customer_details(self, debtor_code: str) -> Optional[Dict[str, Any]]:
         """Get customer (Debtor) details including classification and addresses."""
         return self.customers.get(debtor_code)
@@ -206,22 +217,25 @@ class MockAutoCountClient:
                 return customer
         return None
 
-    def create_sales_order(self, order_data: Dict[str, Any]) -> Optional[str]:
+    async def create_sales_order(self, order_data: CreateSalesOrderParam) -> Optional[str]:
         """Create a sales order (mock)."""
         order_ref = f"SO-{datetime.now().strftime('%Y%m%d')}-{len(self.customers) + 1}"
         print(f"[MOCK AUTOCOUNT] Created sales order: {order_ref}")
+        print(f"[MOCK AUTOCOUNT] Payload: {order_data.model_dump(exclude_none=True)}")
         return order_ref
 
-    def create_invoice(self, order_data: Dict[str, Any]) -> Optional[str]:
+    async def create_invoice(self, invoice_data: CreateARInvoiceParam) -> Optional[str]:
         """Create an invoice (mock)."""
         invoice_ref = f"INV-{datetime.now().strftime('%Y%m%d')}-{len(self.customers) + 1}"
         print(f"[MOCK AUTOCOUNT] Created invoice: {invoice_ref}")
+        print(f"[MOCK AUTOCOUNT] Payload: {invoice_data.model_dump(exclude_none=True)}")
         return invoice_ref
 
-    def create_delivery_order(self, order_data: Dict[str, Any]) -> Optional[str]:
+    async def create_delivery_order(self, do_data: CreateDeliveryOrderParam) -> Optional[str]:
         """Create a delivery order (mock)."""
         do_ref = f"DO-{datetime.now().strftime('%Y%m%d')}-{len(self.customers) + 1}"
         print(f"[MOCK AUTOCOUNT] Created delivery order: {do_ref}")
+        print(f"[MOCK AUTOCOUNT] Payload: {do_data.model_dump(exclude_none=True)}")
         return do_ref
 
     def get_pick_pack_status(self, order_id: str) -> Dict[str, Any]:

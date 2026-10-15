@@ -3,7 +3,7 @@ import hmac
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Request, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
-
+from telegram_client import get_telegram_client
 from database import get_db_session_factory
 from message_handler import CoreMessageHandler
 from config import settings
@@ -135,6 +135,17 @@ async def telegram_webhook_receive(
 
             result = handler.handle_message(message)
             logger.info(f"Telegram message handling result: {result}")
+            
+            # ---- TEMPORARY ECHO TEST (add this) ----
+            if result.get("processed"):
+                logger.info("ECHO: attempting to send reply")
+                telegram_client = get_telegram_client()
+                resp = await telegram_client.send_message(
+                    chat_id=message["sender_id"],
+                    text=f"Got it, agent received: {message['message']}",
+                )
+                logger.info(f"ECHO: send_message returned: {resp}")
+            # ----------------------------------------
 
         # Always return 200 quickly to Telegram; processing results are logged
         return {"status": "ok"}

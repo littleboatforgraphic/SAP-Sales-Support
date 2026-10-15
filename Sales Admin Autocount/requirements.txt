@@ -11,5 +11,16 @@ python-dotenv==1.0.1
 pyodbc==5.0.0  # For SQL Server connectivity to AutoCount database (READ ONLY)
 # psycopg2-binary==2.9.9  # Commented out for Windows compatibility - use SQLite for development
 
+# Email order agent
+pypdf==6.20.1          # PDF text extraction from PO attachments
+pypdfium2==5.14.0      # renders scanned-PDF pages to images for the vision model
+msal==1.39.0           # Microsoft Graph / Outlook auth
+
+# Gmail poller (OAuth 2.0 path; IMAP path uses stdlib)
+google-auth==2.62.0
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client==2.201.0
+
 # Note: APScheduler executes jobs in-process. If running with multiple workers (e.g., uvicorn --workers > 1),
 # jobs may execute multiple times. For production, use a single dedicated scheduler or implement distributed locks.
