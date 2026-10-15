@@ -77,7 +77,8 @@ class BaseAgent:
             result = self.llm_client.chat_completion(
                 messages,
                 temperature=0.3,  # Lower temperature for more deterministic responses
-                max_tokens=150  # Limit to ~150 tokens for ~200 characters
+                max_tokens=150,  # Limit to ~150 tokens for ~200 characters
+                operation=f"agent:{type(self).__name__}",
             )
             return result["content"]
         except Exception as e:

@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # Text-layer PDFs still go through pypdf for free. Empty = scanned docs blocked.
     ilmu_vision_model: str = ""
     ilmu_vision_key: str = ""  # separate API key if the vision model uses one; falls back to ilmu_api_key
+    # LLM gateway (littleboatforgraphic/llm-gateway). When set, all LLM calls go through the gateway with this
+    # client's gateway key (`gw add-key <client> sales-support`) and are metered for billing there;
+    # the Ilmu API keys then live only on the gateway. Leave empty to call Ilmu directly.
+    llm_gateway_url: str = ""  # e.g. https://llm.example.com/v1
+    llm_gateway_key: str = ""
 
     # Telegram Configuration (alternative channel - lower messaging cost)
     telegram_bot_token: SecretStr = SecretStr("")
@@ -29,29 +34,6 @@ class Settings(BaseSettings):
 
     # Email Webhook Configuration
     email_webhook_secret_token: SecretStr = SecretStr("")
-
-    # LLM pricing (USD per million tokens), keyed by model name.
-    # "default" is the fallback for models not listed here.
-    # Can be overridden via the LLM_PRICING environment variable (JSON) so
-    # pricing updates don't require code changes.
-    llm_pricing: dict = {
-        "default": {"input_per_m": 0.15, "output_per_m": 0.60},
-        "ilmu-mini-v3.3": {"input_per_m": 0.15, "output_per_m": 0.60},
-    }
-
-    def get_llm_pricing(self, model: str) -> dict:
-        """Return per-million-token pricing for a model, falling back to default."""
-        pricing = self.llm_pricing.get(model) or self.llm_pricing.get("default")
-        if not pricing:
-            raise ValueError(f"No pricing configured for model '{model}' and no default set")
-        return pricing
-
-    def calculate_llm_cost(self, input_tokens: int, output_tokens: int, model: str = "default") -> float:
-        """Calculate cost (USD) for an LLM call using the pricing table."""
-        pricing = self.get_llm_pricing(model)
-        input_cost = (input_tokens / 1_000_000) * pricing["input_per_m"]
-        output_cost = (output_tokens / 1_000_000) * pricing["output_per_m"]
-        return input_cost + output_cost
 
     # WhatsApp Configuration
     whatsapp_phone_number_id: str = ""
@@ -114,11 +96,6 @@ class Settings(BaseSettings):
     gmail_imap_port: int = 993  # IMAP port (default: 993)
     gmail_poll_interval: int = 300  # Polling interval in seconds (default: 5 minutes)
 
-    # Usage / Cost Control
-    token_budget_per_day: int = 100000
-    token_budget_per_month: int = 3000000
-    cost_alert_threshold_usd: float = 50.0
-
     # Admin Takeover Configuration
     admin_takeover_window_minutes: int = 30
     admin_takeover_auto_extend: bool = True
@@ -140,15 +117,3 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-
-# Validate pricing table structure at startup
-def _validate_llm_pricing():
-    for model, pricing in settings.llm_pricing.items():
-        if "input_per_m" not in pricing or "output_per_m" not in pricing:
-            raise ValueError(
-                f"Invalid LLM_PRICING entry for '{model}': "
-                "each entry needs 'input_per_m' and 'output_per_m'"
-            )
-
-
-_validate_llm_pricing()

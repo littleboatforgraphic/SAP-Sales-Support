@@ -13,7 +13,6 @@ import sys
 # Lightweight migrations for schema changes made after the initial release.
 # Each entry: (table, column, SQLite column definition)
 MIGRATIONS = [
-    ("usage_log", "model", "ALTER TABLE usage_log ADD COLUMN model VARCHAR(100) NOT NULL DEFAULT 'unknown'"),
     ("staff_allowlist", "telegram_user_id", "ALTER TABLE staff_allowlist ADD COLUMN telegram_user_id VARCHAR(20)"),
     ("conversation_states", "participant_id", "ALTER TABLE conversation_states ADD COLUMN participant_id VARCHAR(20) NOT NULL DEFAULT ''"),
 ]

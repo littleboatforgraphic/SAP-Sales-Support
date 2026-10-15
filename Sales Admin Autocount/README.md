@@ -148,11 +148,12 @@ in development, verification is skipped with a log warning.
 
 ## LLM Cost Tracking
 
-- LLM pricing lives in one place: the `llm_pricing` table in `config.py` (USD per
-  million tokens, keyed by model name). Override it without code changes by setting
-  `LLM_PRICING` (JSON) in `.env`.
-- Every usage log row records the model used, so usage summaries (`get_daily_usage`
-  / `get_monthly_usage`) include a per-model breakdown alongside per-agent.
+- Token usage, cost (MYR) and monthly budgets are tracked centrally by the LLM gateway
+  (`littleboatforgraphic/llm-gateway`), not by this app. Set `LLM_GATEWAY_URL` /
+  `LLM_GATEWAY_KEY` (see `DEPLOYMENT.md`); every call is tagged `app:sales-autocount` and
+  `op:<operation>` for per-operation reports.
+- Budgets and alerts are set per client on the gateway (`gw set-budget`). The app still gets
+  token counts in each `chat_completion` result but keeps no price table or budget of its own.
 
 ## Architecture
 

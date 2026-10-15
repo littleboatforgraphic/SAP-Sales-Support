@@ -11,7 +11,6 @@ from glossary import GlossaryManager, seed_glossary
 from sku_index import SKUIndexManager, seed_sku_index
 from price_table import PriceTableManager, seed_price_table
 from audit_log import AuditLogger
-from usage_tracker import UsageTracker
 from trigger import TriggerDetector
 from mock_sap_client import MockAutoCountClient
 from mock_email_monitor import MockEmailMonitor
@@ -158,43 +157,6 @@ def test_trigger_detection():
         assert result is None, "Should return None for non-trigger message"
 
         print("[PASS] Trigger detection tests passed")
-
-    finally:
-        db.close()
-        cleanup_temp_db(temp_db)
-
-
-def test_usage_tracker():
-    """Test usage tracking and budget enforcement."""
-    print("\n=== Testing Usage Tracker Module ===")
-    temp_db = get_temp_db()
-    engine = get_engine(f"sqlite:///{temp_db}")
-    Base.metadata.create_all(bind=engine)
-    SessionLocal = get_sessionmaker(engine)
-    db = SessionLocal()
-
-    try:
-        usage_tracker = UsageTracker(db)
-
-        # Test budget check
-        status, message = usage_tracker.check_budget()
-        print(f"Budget check: {status.value} - {message}")
-        assert status.value in ["passed", "cost_alert"], "Budget check should pass or have cost alert"
-
-        # Test record usage
-        entry = usage_tracker.record_usage(
-            input_tokens=1000,
-            output_tokens=500,
-            agent_name="test_agent",
-            operation_type="test"
-        )
-        print(f"Recorded usage: {entry.id} tokens, cost: ${entry.cost_usd:.4f}")
-
-        # Test daily usage
-        daily = usage_tracker.get_daily_usage()
-        print(f"Daily usage: {daily['total_tokens']} tokens, ${daily['total_cost_usd']:.4f}")
-
-        print("[PASS] Usage tracker tests passed")
 
     finally:
         db.close()
@@ -370,7 +332,6 @@ def main():
         test_sku_index()
         test_price_table()
         test_trigger_detection()
-        test_usage_tracker()
         test_audit_log()
         test_mock_sap_client()
         test_mock_email_monitor()

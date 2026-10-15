@@ -244,50 +244,6 @@ def test_telegram_message_flow():
     print("[PASS] Telegram message flow tests passed")
 
 
-def test_usage_tracker_per_model():
-    """Usage tracking with the model column and shared pricing table."""
-    print("\n=== Testing usage tracker per-model tracking ===")
-    from usage_tracker import UsageTracker
-
-    engine = get_engine(os.environ["DATABASE_URL"])
-    SessionLocal = get_sessionmaker(engine)
-    db = SessionLocal()
-
-    try:
-        tracker = UsageTracker(db)
-
-        entry = tracker.record_usage(
-            input_tokens=1000,
-            output_tokens=500,
-            agent_name="test_agent",
-            operation_type="test",
-            model="ilmu-mini-v3.3"
-        )
-        assert entry.model == "ilmu-mini-v3.3"
-        # 1000 * 0.15/M + 500 * 0.60/M = 0.00015 + 0.0003 = 0.00045
-        assert abs(entry.cost_usd - 0.00045) < 1e-9, f"Cost calculation wrong: {entry.cost_usd}"
-
-        entry = tracker.record_usage(
-            input_tokens=1000,
-            output_tokens=500,
-            agent_name="test_agent",
-            operation_type="test",
-            model="some-other-model"  # Falls back to default pricing
-        )
-        assert entry.model == "some-other-model"
-
-        daily = tracker.get_daily_usage()
-        assert "by_model" in daily
-        assert "ilmu-mini-v3.3" in daily["by_model"]
-        assert "some-other-model" in daily["by_model"]
-        assert daily["by_model"]["ilmu-mini-v3.3"]["num_calls"] == 1
-        print(f"Per-model breakdown: {list(daily['by_model'].keys())}")
-
-        print("[PASS] Usage tracker per-model tests passed")
-    finally:
-        db.close()
-
-
 def test_admin_takeover():
     """Admin takeover blocks agent processing until the window expires."""
     print("\n=== Testing admin takeover ===")
@@ -333,7 +289,6 @@ def main():
         test_whatsapp_webhook_verify()
         test_telegram_secret_verification()
         test_telegram_message_flow()
-        test_usage_tracker_per_model()
         test_admin_takeover()
 
         print("\n" + "=" * 60)

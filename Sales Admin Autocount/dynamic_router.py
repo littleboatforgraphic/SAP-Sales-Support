@@ -213,7 +213,8 @@ Return ONLY the agent name (one word)."""
                     {"role": "user", "content": message}
                 ],
                 temperature=0.3,
-                max_tokens=20
+                max_tokens=20,
+                operation="route-classify",
             )
             
             classified = result["content"].strip().lower()
