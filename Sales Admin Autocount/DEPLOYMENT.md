@@ -162,6 +162,16 @@ TELEGRAM_WEBHOOK_SECRET_TOKEN=random_secret_string_32_chars
 ENVIRONMENT=development
 ```
 
+**LLM gateway (production metering/billing):** route LLM calls through the shared
+[llm-gateway](https://github.com/littleboatforgraphic/llm-gateway) with this client's gateway key
+(`gw add-key <client-code> sales-autocount`). The Ilmu API keys are then held by the gateway only;
+`ILMU_MODEL` / `ILMU_VISION_MODEL` must be gateway model names (e.g. `ilmu-mini-v3.3`, `ilmu-vision-v1.3`).
+Leave `LLM_GATEWAY_URL` empty to call Ilmu directly (dev).
+```env
+LLM_GATEWAY_URL=https://llm.example.com/v1
+LLM_GATEWAY_KEY=sk-...
+```
+
 **AOTG API Configuration (AutoCount Cloud Bridge):**
 ```env
 AOTG_BASE_URL=https://aotgapi.autocountcloud.com

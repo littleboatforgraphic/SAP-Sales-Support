@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # Text-layer PDFs still go through pypdf for free. Empty = scanned docs blocked.
     ilmu_vision_model: str = ""
     ilmu_vision_key: str = ""  # separate API key if the vision model uses one; falls back to ilmu_api_key
+    # LLM gateway (littleboatforgraphic/llm-gateway). When set, all LLM calls go through the gateway with this
+    # client's gateway key (`gw add-key <client> sales-support`) and are metered for billing there;
+    # the Ilmu API keys then live only on the gateway. Leave empty to call Ilmu directly.
+    llm_gateway_url: str = ""  # e.g. https://llm.example.com/v1
+    llm_gateway_key: str = ""
 
     # Telegram Configuration (alternative channel - lower messaging cost)
     telegram_bot_token: SecretStr = SecretStr("")

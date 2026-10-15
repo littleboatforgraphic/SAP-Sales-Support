@@ -11,15 +11,18 @@ class LLMClient:
     """Wrapper for Ilmu Claw API using OpenAI SDK."""
 
     def __init__(self):
-        self.client = OpenAI(
-            base_url=settings.ilmu_base_url,
-            api_key=settings.ilmu_api_key,
-        )
         self.model = settings.ilmu_model
-        # Vision calls may use a different API key
-        vision_key = getattr(settings, "ilmu_vision_key", "") or settings.ilmu_api_key
-        self.vision_client = OpenAI(base_url=settings.ilmu_base_url, api_key=vision_key)
         self.vision_model = getattr(settings, "ilmu_vision_model", "")
+        self.use_gateway = bool(settings.llm_gateway_url)
+        if self.use_gateway:
+            # The gateway holds the provider keys (incl. vision) and meters usage per client key.
+            self.client = OpenAI(base_url=settings.llm_gateway_url, api_key=settings.llm_gateway_key)
+            self.vision_client = self.client
+        else:
+            self.client = OpenAI(base_url=settings.ilmu_base_url, api_key=settings.ilmu_api_key)
+            # Vision calls may use a different API key
+            vision_key = getattr(settings, "ilmu_vision_key", "") or settings.ilmu_api_key
+            self.vision_client = OpenAI(base_url=settings.ilmu_base_url, api_key=vision_key)
 
     def chat_completion(
         self,
@@ -27,6 +30,7 @@ class LLMClient:
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
         model: Optional[str] = None,
+        operation: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -38,6 +42,7 @@ class LLMClient:
             temperature: Sampling temperature (0-2)
             max_tokens: Maximum tokens to generate
             model: Override the configured model (e.g. the vision model for OCR)
+            operation: Usage tag for the LLM gateway (e.g. "email-order-extraction"), shown in billing data
             **kwargs: Additional parameters for the API call
 
         Returns:
@@ -46,6 +51,12 @@ class LLMClient:
         used_model = model or self.model
         # Vision model may need its own credentials
         client = self.vision_client if (used_model == self.vision_model and self.vision_model) else self.client
+        if self.use_gateway:
+            extra_body = dict(kwargs.pop("extra_body", None) or {})
+            metadata = dict(extra_body.get("metadata") or {})
+            metadata["tags"] = list(metadata.get("tags") or []) + ["app:sales-autocount", f"op:{operation or 'chat'}"]
+            extra_body["metadata"] = metadata
+            kwargs["extra_body"] = extra_body
         response = client.chat.completions.create(
             model=used_model,
             messages=messages,
@@ -58,6 +69,8 @@ class LLMClient:
         usage = response.usage
         input_tokens = usage.prompt_tokens if usage else 0
         output_tokens = usage.completion_tokens if usage else 0
+        details = getattr(usage, "prompt_tokens_details", None) if usage else None
+        cached_input_tokens = (getattr(details, "cached_tokens", None) if details else None) or 0
 
         # Cost calculated from the pricing table in config (settings.calculate_llm_cost)
         cost = settings.calculate_llm_cost(input_tokens, output_tokens, used_model)
@@ -66,6 +79,7 @@ class LLMClient:
             "content": response.choices[0].message.content,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
+            "cached_input_tokens": cached_input_tokens,
             "total_tokens": input_tokens + output_tokens,
             "cost_usd": cost,
             "model": used_model
@@ -104,7 +118,7 @@ class LLMClient:
         # For now, this is a placeholder - you may need to convert PDF to text first
         # or use a different approach based on Ilmu Claw's capabilities
 
-        result = self.chat_completion(messages)
+        result = self.chat_completion(messages, operation="pdf-extraction")
         return result
 
     def draft_message(
@@ -135,7 +149,7 @@ class LLMClient:
             }
         ]
 
-        result = self.chat_completion(messages)
+        result = self.chat_completion(messages, operation="draft-message")
         return result
 
 

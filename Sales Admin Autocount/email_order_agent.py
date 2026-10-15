@@ -96,6 +96,7 @@ class EmailOrderAgent:
                     model=settings.ilmu_vision_model,
                     temperature=0.3,
                     max_tokens=2000,
+                    operation="email-order-ocr",
                 )
                 return result["content"]
 
@@ -105,7 +106,8 @@ class EmailOrderAgent:
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.3,
-                max_tokens=2000  # More tokens for structured JSON output
+                max_tokens=2000,  # More tokens for structured JSON output
+                operation="email-order-extraction",
             )
             return result["content"]
         return llm_complete

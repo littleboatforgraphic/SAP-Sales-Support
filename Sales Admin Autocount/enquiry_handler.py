@@ -135,6 +135,7 @@ class EnquiryAgent:
              {"role": "user", "content": user_prompt}],
             temperature=0.2,
             max_tokens=1000,
+            operation="enquiry",
         )
         return result["content"]
 
