@@ -172,6 +172,11 @@ LLM_GATEWAY_URL=https://llm.example.com/v1
 LLM_GATEWAY_KEY=sk-...
 ```
 
+Token usage, MYR cost and the client's monthly budget/alerts are tracked on the gateway
+(`gw set-budget <client-code> <MYR>`, `gw budget-status`). This app no longer keeps its own
+price table or token budget, so the old `LLM_PRICING`, `TOKEN_BUDGET_PER_DAY`,
+`TOKEN_BUDGET_PER_MONTH` and `COST_ALERT_THRESHOLD_USD` settings can be removed from `.env`.
+
 **AOTG API Configuration (AutoCount Cloud Bridge):**
 ```env
 AOTG_BASE_URL=https://aotgapi.autocountcloud.com

@@ -46,7 +46,7 @@ class LLMClient:
             **kwargs: Additional parameters for the API call
 
         Returns:
-            Dict containing response, input_tokens, output_tokens, cost
+            Dict containing response, input_tokens, output_tokens, cached_input_tokens, model (cost and budgets are tracked by the LLM gateway)
         """
         used_model = model or self.model
         # Vision model may need its own credentials
@@ -72,16 +72,12 @@ class LLMClient:
         details = getattr(usage, "prompt_tokens_details", None) if usage else None
         cached_input_tokens = (getattr(details, "cached_tokens", None) if details else None) or 0
 
-        # Cost calculated from the pricing table in config (settings.calculate_llm_cost)
-        cost = settings.calculate_llm_cost(input_tokens, output_tokens, used_model)
-
         return {
             "content": response.choices[0].message.content,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "cached_input_tokens": cached_input_tokens,
             "total_tokens": input_tokens + output_tokens,
-            "cost_usd": cost,
             "model": used_model
         }
 

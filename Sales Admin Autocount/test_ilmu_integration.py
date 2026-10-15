@@ -33,7 +33,6 @@ def test_ilmu_basic():
         print(f"Input tokens: {result['input_tokens']}")
         print(f"Output tokens: {result['output_tokens']}")
         print(f"Total tokens: {result['total_tokens']}")
-        print(f"Cost: ${result['cost_usd']:.6f}")
 
         if "test successful" in result['content'].lower():
             print("\n[PASS] Ilmu Claw API integration working correctly")
@@ -63,7 +62,6 @@ def test_ilmu_drafting():
 
         print(f"\nDrafted message:\n{result['content']}")
         print(f"\nTokens used: {result['total_tokens']}")
-        print(f"Cost: ${result['cost_usd']:.6f}")
 
         print("\n[PASS] Message drafting test passed")
         return True

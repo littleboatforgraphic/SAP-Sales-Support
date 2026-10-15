@@ -167,25 +167,6 @@ class OrderRecord(Base):
     # Application layer must handle: WHERE id = ? AND version = ?; UPDATE SET version = version + 1
 
 
-class UsageLogEntry(Base):
-    __tablename__ = "usage_log"
-
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date, nullable=False, index=True)
-    input_tokens = Column(Integer, nullable=False)
-    output_tokens = Column(Integer, nullable=False)
-    cost_usd = Column(Numeric(15,2), nullable=False)
-    agent_name = Column(String(50), nullable=False)
-    operation_type = Column(String(50), nullable=False)
-    model = Column(String(100), nullable=False, default="unknown")  # LLM model used
-
-    __table_args__ = (
-        CheckConstraint("input_tokens >= 0", name="ck_usage_log_non_negative_input_tokens"),
-        CheckConstraint("output_tokens >= 0", name="ck_usage_log_non_negative_output_tokens"),
-        CheckConstraint("cost_usd >= 0", name="ck_usage_log_non_negative_cost"),
-    )
-
-
 class PaymentDraftEntry(Base):
     __tablename__ = "payment_drafts"
 
