@@ -22,7 +22,7 @@ import json
 from config import settings
 from aotg_sales_invoice_models import CreateSalesOrderParam, CreateARInvoiceParam
 from aotg_customer_models import DebtorGetResultEntity, DebtorListResultEntity
-from aotg_stock_models import StockItemResult
+from aotg_stock_models import StockItemResult, StockItemListResult
 from aotg_delivery_order_models import CreateDeliveryOrderParam
 
 logger = logging.getLogger(__name__)
@@ -285,6 +285,36 @@ class AOTGClient(AutoCountClientInterface):
 
         except Exception as e:
             logger.error(f"Failed to list debtors: {e}")
+            return []
+
+    def list_stock_items(self, keyword: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Pull the item catalogue via POST /api/public/v1/StockItem/GetList.
+        Returns rows shaped like StockItemListResult (ItemCode, Description,
+        UOM, StockQty, StdPrice). Used to sync the local SKU index so the
+        agent knows what items exist before drafting or answering enquiries.
+        """
+        if self._mock_mode:
+            logger.warning("Using mock mode for list_stock_items")
+            return []
+
+        try:
+            url = f"{self.base_url}/api/public/v1/StockItem/GetList"
+            params = {"keyword": keyword} if keyword else None
+
+            response = httpx.post(url, params=params, headers=self._get_headers(), timeout=60.0)
+            response.raise_for_status()
+
+            payload = response.json()
+            # GetList may return the row array directly or wrapped in ResultJson
+            if isinstance(payload, dict) and payload.get("ResultJson"):
+                payload = json.loads(payload["ResultJson"])
+            rows = payload if isinstance(payload, list) else []
+
+            return [StockItemListResult(**row).model_dump() for row in rows]
+
+        except Exception as e:
+            logger.error(f"Failed to list stock items: {e}")
             return []
 
     def get_customer_details(self, debtor_code: str) -> Optional[Dict[str, Any]]:

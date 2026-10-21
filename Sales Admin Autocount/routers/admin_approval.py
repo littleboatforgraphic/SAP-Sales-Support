@@ -356,6 +356,11 @@ def send_drafted_reply(
     if not verify_staff_access(request.user_id, db):
         raise HTTPException(status_code=403, detail="User not authorized")
 
+    # The outbound master switch still applies: an admin release is an
+    # agent send, so EMAIL_CAN_REPLY=false must block it too.
+    if not getattr(settings, "email_can_reply", False):
+        raise HTTPException(status_code=503, detail="Outbound replies are disabled (EMAIL_CAN_REPLY=false)")
+
     draft = db.query(AuditLogEntry).filter(
         AuditLogEntry.entity_type == "email_po",
         AuditLogEntry.entity_reference == request.draft_ref,

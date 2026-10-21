@@ -1,21 +1,18 @@
 version: '3.8'
 
 services:
-  sales-admin-sap-agent:
+  sales-admin-autocount-agent:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sales-admin-sap-agent
+    container_name: sales-admin-autocount-agent
     ports:
       - "8000:8000"
     env_file:
       - .env
     volumes:
-      # Persist database file
+      # Persist database and logs (DATABASE_URL can point into ./data)
       - ./data:/app/data
-      # Mount SQLite database if using SQLite
-      - ./sales_admin_sap.db:/app/sales_admin_sap.db
-      # Persist logs
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:
@@ -26,6 +23,33 @@ services:
       start_period: 5s
     networks:
       - sales-admin-network
+
+  # Mailbox pollers run as separate containers sharing the same DB.
+  # Uncomment as needed once their credentials are configured in .env.
+  #
+  # gmail-poller:
+  #   build: .
+  #   container_name: sales-admin-gmail-poller
+  #   env_file: [.env]
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./logs:/app/logs
+  #   command: ["python", "gmail_poller.py"]
+  #   restart: unless-stopped
+  #   networks: [sales-admin-network]
+  #
+  # outlook-poller:
+  #   build: .
+  #   container_name: sales-admin-outlook-poller
+  #   env_file: [.env]
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./logs:/app/logs
+  #     # MSAL token cache produced by setup_test_outlook.py
+  #     - ./token_cache.json:/app/token_cache.json
+  #   command: ["python", "outlook_poller.py"]
+  #   restart: unless-stopped
+  #   networks: [sales-admin-network]
 
 networks:
   sales-admin-network:

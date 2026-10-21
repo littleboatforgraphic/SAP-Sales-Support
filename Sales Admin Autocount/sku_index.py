@@ -17,16 +17,79 @@ class SKUIndexManager:
         """
         return self.sync_from_autocount()
 
-    def sync_from_autocount(self) -> int:
+    def sync_from_autocount(self, client=None, keyword: Optional[str] = None) -> int:
         """
-        Sync SKU index from AutoCount.
-        This is a placeholder - actual implementation will call AOTG API
-        once AutoCount integration is available.
+        Pull the item catalogue from AutoCount/AOTG (POST StockItem/GetList)
+        and upsert it into the SKU index. This is the agent's knowledge of
+        what items exist - item resolution, enquiries and order drafting all
+        read this table rather than querying the ERP per request.
+
+        Only catalogue identity is stored: code, description, UOM. Stock
+        levels and prices are deliberately NOT persisted - quantities are
+        always read live at answer time so the agent never repeats a stale
+        snapshot.
+
+        A full pull (no keyword) is authoritative: SKUs missing from the pull
+        are deactivated so stale items stop matching. A keyword pull only
+        upserts the returned subset (top-up refresh, nothing deactivated).
+
+        Returns the number of SKUs upserted (0 = pull failed, index untouched).
         """
-        # TODO: Implement AutoCount sync when AOTG integration is available
-        # For now, this is a no-op
-        print("SKU sync from AutoCount not yet implemented - pending AOTG integration")
-        return 0
+        if client is None:
+            from autocount_client import get_autocount_client
+            client = get_autocount_client()
+
+        rows = client.list_stock_items(keyword=keyword) or []
+        if not rows:
+            print("Stock item pull returned 0 rows - catalogue left unchanged")
+            return 0
+
+        now = datetime.now(timezone.utc)
+        seen = set()
+        upserted = 0
+
+        for row in rows:
+            sku = (row.get("ItemCode") or "").strip().upper()
+            if not sku:
+                continue
+            seen.add(sku)
+
+            # Catalogue identity only - no stock levels or prices are stored
+            spec = {k: row[k] for k in ("UOM",) if row.get(k) is not None}
+
+            entry = self.session.query(SKUIndexEntry).filter(
+                SKUIndexEntry.sku == sku
+            ).first()
+            if entry:
+                entry.description = row.get("Description") or entry.description
+                entry.spec_attributes = json.dumps(spec)
+                entry.last_synced_at = now
+                entry.active = True
+            else:
+                entry = SKUIndexEntry(
+                    sku=sku,
+                    description=row.get("Description") or sku,
+                    spec_attributes=json.dumps(spec),
+                    last_synced_at=now,
+                    active=True,
+                )
+                self.session.add(entry)
+            upserted += 1
+
+        if keyword is None:
+            # Full pull is authoritative: anything not returned is gone from
+            # the catalogue and should no longer match.
+            stale = self.session.query(SKUIndexEntry).filter(
+                SKUIndexEntry.active == True,
+                SKUIndexEntry.sku.notin_(seen),
+            ).all()
+            for entry in stale:
+                entry.active = False
+
+        self.session.commit()
+        print(f"Synced {upserted} SKUs from AutoCount" +
+              ("" if keyword is None else f" (keyword '{keyword}', no deactivation)"))
+        return upserted
 
     def fuzzy_match(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """
@@ -53,15 +116,17 @@ class SKUIndexManager:
             # Check if query is contained in SKU
             elif query_normalized in entry.sku.lower():
                 score = 80
-            # Check if query matches description
+            # Whole query appears verbatim in the description - stronger
+            # than any partial word overlap, so it must out-score the
+            # word-match branch below (previously tied at 60).
             elif query_normalized in entry.description.lower():
-                score = 60
+                score = 75
             # Check partial word matches in description
             else:
                 words = query_normalized.split()
                 for word in words:
                     if word in entry.description.lower():
-                        score += 20
+                        score += 15
 
             if score > 0:
                 matches.append({

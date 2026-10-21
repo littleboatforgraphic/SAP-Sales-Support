@@ -1,0 +1,83 @@
+# Deployment manifest - files required on the server for AOTG-connected testing.
+# Consumed by make_deploy_copy.py. Lines starting with # are comments.
+#
+# NOT deployed (dev/test only):
+#   test_*.py (except test_gmail_email.py - the smoke-test harness)
+#   address_validator.py, split_aotg_api.py   - dev-only utilities, unimported at runtime
+#   tests/, agents/, __pycache__/, *.db, .env - created on server
+#   *.md docs, Sale Support Autocount.zip     - see README.md for reference
+#
+# ---------------- Runtime ----------------
+main.py
+config.py
+database.py
+llm_client.py
+routers/admin_approval.py
+routers/agents_webhook.py
+routers/aotg_telegram_webhook.py
+routers/email_webhook.py
+routers/telegram_webhook.py
+routers/whatsapp_webhook.py
+
+# Agents / messaging
+agents.py
+dynamic_router.py
+trigger.py
+message_handler.py
+glossary.py
+role_helpers.py
+audit_log.py
+telegram_client.py
+
+# AutoCount / AOTG
+autocount_client.py
+mock_autocount_client.py      # required import fallback + dev; refuses in prod env
+autocount_draft.py
+aotg_customer_models.py
+aotg_delivery_order_models.py
+aotg_sales_invoice_models.py
+aotg_stock_models.py
+aotg_knowledge_models.py
+aotg_query_agent.py
+aotg_catalog_loader.py
+
+# Email pipeline
+email_classifier.py
+enquiry_handler.py
+email_order_agent.py
+email_order_extraction.py
+email_autonomy.py
+email_sender.py
+mock_email_monitor.py          # dep of the /mock route (404'd in production anyway)
+
+# Mailbox pollers (run as separate processes)
+gmail_poller.py
+outlook_poller.py
+
+# ---------------- Bootstrap / ops ----------------
+init_db.py
+load_aotg_catalog.py
+setup_test_deployment.py       # staff allowlist + AOTG catalog bootstrap
+setup_webhook.py               # telegram webhook registration
+setup_test_outlook.py          # Graph device-code auth -> token cache
+manage_allowlist.py            # outbound allowlist admin
+sync_item_catalog.py           # pull item catalogue from AOTG into SKU index
+seed_data.py                   # glossary / SKU / price seeding (optional)
+sku_index.py
+price_table.py
+
+# Smoke-test harness (kept: this is how you verify the real pipeline on-server)
+test_gmail_email.py
+
+# ---------------- Config / docs ----------------
+requirements.txt
+Dockerfile
+docker-compose.yml
+.dockerignore
+.env.example
+README.md
+docs/Autocount_API_Definition.json
+docs/aotg_customer.json
+docs/aotg_delivery_order.json
+docs/aotg_sales_invoice.json
+docs/aotg_stock.json

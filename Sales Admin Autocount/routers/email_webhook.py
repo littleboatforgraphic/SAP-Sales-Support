@@ -530,6 +530,9 @@ def _process_enquiry(
         "confidence": enq["confidence"],
         "flags": enq["flags"],
         "extracted": enq["extracted"],
+        "sender_claimed_debtors": enq["sender_claimed_debtors"],
+        "sender_proven_debtors": enq["sender_proven_debtors"],
+        "sender_identity_evidence": enq["sender_identity_evidence"],
         "risk": triage["risk"],
     })
 

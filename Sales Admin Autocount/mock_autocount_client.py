@@ -21,6 +21,7 @@ class MockAutoCountClient:
                 "AccNo": "300-A001",
                 "CompanyName": "ABC Trading Sdn Bhd",
                 "Area": "Trading",
+                "EmailAddress": "orders@abctrading.example",
                 "InvoiceAddress": {
                     "Contact": "Mr. Tan",
                     "Phone": "02111373",
@@ -53,6 +54,7 @@ class MockAutoCountClient:
                 "AccNo": "300-A002",
                 "CompanyName": "XYZ Construction Sdn Bhd",
                 "Area": "Construction",
+                "EmailAddress": "purchasing@xyzconstruction.example",
                 "InvoiceAddress": {
                     "Contact": "Mr. Lee",
                     "Phone": "03-12345678",
@@ -75,6 +77,7 @@ class MockAutoCountClient:
                 "AccNo": "300-A003",
                 "CompanyName": "BuildWell Contractors",
                 "Area": "Construction",
+                "EmailAddress": "admin@buildwell.example",
                 "InvoiceAddress": {
                     "Contact": "Ms. Sarah",
                     "Phone": "03-87654321",
@@ -105,6 +108,40 @@ class MockAutoCountClient:
             "WELD-5050": 0  # Out of stock
         }
 
+        # Catalogue details used by list_stock_items (the SKU-index sync source)
+        self.item_details = {
+            "WM-001": {"description": "Welded Wire Mesh 6mm x 6mm x 2.4m x 1.2m", "uom": "PCS", "std_price": 45.00},
+            "WM-002": {"description": "Welded Wire Mesh 8mm x 8mm x 2.4m x 1.2m", "uom": "PCS", "std_price": 52.00},
+            "WM-003": {"description": "Galvanized Wire Mesh 6mm x 6mm x 2.4m x 1.2m", "uom": "PCS", "std_price": 68.00},
+            "BRC-A142": {"description": "BRC Mesh A142 10mm x 10mm x 2.4m x 1.2m", "uom": "PCS", "std_price": 85.00},
+            "BRC-A193": {"description": "BRC Mesh A193 12mm x 12mm x 2.4m x 1.2m", "uom": "PCS", "std_price": 95.00},
+            "WELD-5050": {"description": "Weldmesh 5mm x 5mm x 2.4m x 1.2m", "uom": "PCS", "std_price": 38.00},
+        }
+
+        # Mock order data - keyed by UPPERCASE ref. Seeded orders exist so
+        # status enquiries can be tested; orders created via
+        # create_sales_order() are stored here too.
+        self.orders = {
+            "SO-20261014-4": {
+                "ref": "SO-20261014-4",
+                "debtor_code": "300-A001",
+                "debtor_name": "ABC Trading Sdn Bhd",
+                "status": "ready for packing",
+            },
+            "SO-20261010-1": {
+                "ref": "SO-20261010-1",
+                "debtor_code": "300-A002",
+                "debtor_name": "XYZ Construction Sdn Bhd",
+                "status": "delivered",
+            },
+            "INV-20261012-2": {
+                "ref": "INV-20261012-2",
+                "debtor_code": "300-A001",
+                "debtor_name": "ABC Trading Sdn Bhd",
+                "status": "invoiced, payment pending",
+            },
+        }
+
     def get_stock_info(self, item_code: str) -> Optional[Dict[str, Any]]:
         """Get stock information for an item code."""
         quantity = self.stock.get(item_code)
@@ -120,10 +157,32 @@ class MockAutoCountClient:
         """Get stock quantity for an item code (for backward compatibility)."""
         return self.stock.get(item_code)
 
+    def list_stock_items(self, keyword: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Mock of AOTG POST /StockItem/GetList - the source for the local
+        SKU-index catalogue sync. Optional keyword filters code/description.
+        """
+        rows = []
+        for code, qty in self.stock.items():
+            d = self.item_details.get(code, {})
+            row = {
+                "ItemCode": code,
+                "Description": d.get("description") or f"Mock Item {code}",
+                "UOM": d.get("uom", "PCS"),
+                "StockQty": float(qty),
+                "StdPrice": d.get("std_price"),
+            }
+            kw = (keyword or "").strip().lower()
+            if kw and kw not in code.lower() and kw not in row["Description"].lower():
+                continue
+            rows.append(row)
+        return rows
+
     def list_debtors(self) -> List[Dict[str, Any]]:
         """List all debtors, shaped like AOTG's DebtorListResultEntity."""
         return [
             {"AccNo": code, "CompanyName": c["CompanyName"],
+             "EmailAddress": c.get("EmailAddress"),
              "Area": c.get("Area", ""), "DeliverAddress": c.get("DeliverAddress")}
             for code, c in self.customers.items()
         ]
@@ -219,9 +278,15 @@ class MockAutoCountClient:
 
     async def create_sales_order(self, order_data: CreateSalesOrderParam) -> Optional[str]:
         """Create a sales order (mock)."""
-        order_ref = f"SO-{datetime.now().strftime('%Y%m%d')}-{len(self.customers) + 1}"
+        order_ref = f"SO-{datetime.now().strftime('%Y%m%d')}-{len(self.orders) + 1}"
         print(f"[MOCK AUTOCOUNT] Created sales order: {order_ref}")
         print(f"[MOCK AUTOCOUNT] Payload: {order_data.model_dump(exclude_none=True)}")
+        self.orders[order_ref] = {
+            "ref": order_ref,
+            "debtor_code": getattr(order_data, "Debtor", None),
+            "debtor_name": getattr(order_data, "DebtorName", None),
+            "status": "open",
+        }
         return order_ref
 
     async def create_invoice(self, invoice_data: CreateARInvoiceParam) -> Optional[str]:
@@ -238,6 +303,20 @@ class MockAutoCountClient:
         print(f"[MOCK AUTOCOUNT] Payload: {do_data.model_dump(exclude_none=True)}")
         return do_ref
 
+    def get_order_status(self, order_ref: str) -> Optional[Dict[str, Any]]:
+        """
+        Get an order/invoice/delivery document with its owning debtor.
+        Returns None when the reference does not exist.
+        """
+        if not order_ref:
+            return None
+        return self.orders.get(str(order_ref).strip().upper())
+
     def get_pick_pack_status(self, order_id: str) -> Dict[str, Any]:
         """Get pick/pack status for an order (mock)."""
-        return {"status": "ready", "message": "Order is ready for packing"}
+        order = self.get_order_status(order_id)
+        if order:
+            return {"status": order["status"],
+                    "debtor_code": order["debtor_code"],
+                    "message": f"Order {order['ref']}: {order['status']}"}
+        return {"status": "unknown", "message": "Order not found"}

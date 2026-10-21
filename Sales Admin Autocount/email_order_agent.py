@@ -463,6 +463,51 @@ class EmailOrderAgent:
 
         return previous_orders > 0
 
+    def _resolve_line_items(self, order: ExtractedOrder) -> List[Flag]:
+        """
+        Fill item_code_raw for description-only lines by fuzzy-matching the
+        synced item catalogue (SKU index). Matched lines get a warn flag so
+        the admin can see the mapping was inferred, not printed.
+        """
+        flags: List[Flag] = []
+        if self.db is None:
+            return flags
+        try:
+            from sku_index import SKUIndexManager
+            from database import SKUIndexEntry
+            if self.db.query(SKUIndexEntry).filter(SKUIndexEntry.active == True).count() == 0:
+                return flags
+            catalog = SKUIndexManager(self.db)
+        except Exception as e:
+            logger.warning(f"Item catalogue unavailable for line resolution: {e}")
+            return flags
+
+        for i, line in enumerate(order.lines, 1):
+            if line.item_code_raw or not line.description_raw:
+                continue
+            try:
+                hits = catalog.fuzzy_match(line.description_raw, limit=2)
+            except Exception:
+                continue
+            if not hits or hits[0]["score"] < 60:
+                continue
+            if len(hits) > 1 and hits[1]["score"] == hits[0]["score"]:
+                flags.append(Flag(
+                    code="item_catalogue_ambiguous",
+                    severity="warn",
+                    message=f"Line {i}: '{line.description_raw}' matches multiple "
+                            f"catalogue items ({hits[0]['sku']}, {hits[1]['sku']}) - not resolved"
+                ))
+                continue
+            line.item_code_raw = hits[0]["sku"]
+            flags.append(Flag(
+                code="item_catalogue_matched",
+                severity="warn",
+                message=f"Line {i}: matched '{line.description_raw}' to "
+                        f"{hits[0]['sku']} via catalogue (score {hits[0]['score']})"
+            ))
+        return flags
+
     def process_inbound_email(
         self,
         subject: str,
@@ -510,8 +555,11 @@ class EmailOrderAgent:
         # Step 2: Match customer
         customer_match, customer_flags = self.match_customer_in_autocount(order)
 
+        # Step 2b: resolve description-only lines against the synced catalogue
+        item_flags = self._resolve_line_items(order)
+
         # Step 3: Combine flags
-        all_flags = extraction_flags + customer_flags
+        all_flags = extraction_flags + customer_flags + item_flags
 
         # Step 4: Create draft for admin
         draft = self.create_draft_for_admin(order, customer_match, all_flags)
